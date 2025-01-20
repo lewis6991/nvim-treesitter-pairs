@@ -5,24 +5,25 @@ local ns = api.nvim_create_namespace('nvim-treesitter-pairs')
 --- @param bufnr integer
 --- @param row integer
 --- @param col integer
---- @return {[1]: TSNode, [2]: Query}[]
+--- @return [TSNode, vim.treesitter.Query][]
 local function get_hl_ctx(bufnr, row, col)
-  local buf_highlighter = vim.treesitter.highlighter.active[bufnr]
+  local parser = vim.treesitter.get_parser(bufnr)
 
-  if not buf_highlighter then
+  if not parser then
     return {}
   end
 
-  --- @type {[1]: TSNode, [2]: Query}[]
+  --- @type [TSNode, vim.treesitter.Query][]
   local ret = {}
 
-  buf_highlighter.tree:for_each_tree(function(tstree, tree)
+  parser:for_each_tree(function(tstree, tree)
     if not tstree or not vim.treesitter.is_in_node_range(tstree:root(), row, col) then
       return
     end
 
+    --- @type boolean, vim.treesitter.Query
     local ok, query = pcall(function()
-      return buf_highlighter:get_query(tree:lang()):query()
+      return vim.treesitter.query.get(tree:lang(), 'highlights')
     end)
 
     if ok then
@@ -36,9 +37,9 @@ end
 --- @param bufnr integer
 --- @param row integer
 --- @param col integer
---- @param ctx? {[1]: TSNode, [2]: Query}[]
+--- @param ctx? [TSNode, vim.treesitter.Query][]
 --- @param pred fun(capture: string): boolean?
---- @return TSNode?, Query?
+--- @return TSNode?, vim.treesitter.Query?
 local function get_node_at_pos(bufnr, row, col, ctx, pred)
   ctx = ctx or get_hl_ctx(bufnr, row, col)
 
@@ -58,8 +59,8 @@ end
 --- @param bufnr integer
 --- @param row integer
 --- @param col integer
---- @param ctx? {[1]: TSNode, [2]: Query}[]
---- @return TSNode?, Query?
+--- @param ctx? [TSNode, vim.treesitter.Query][]
+--- @return TSNode?, vim.treesitter.Query?
 local function get_pairnode_at_pos(bufnr, row, col, ctx)
   return get_node_at_pos(bufnr, row, col, ctx, function(c)
     if c:match('^keyword%.?') or c:match('^punctuation%.bracket%.?') then
@@ -73,7 +74,7 @@ local M = {}
 --- @param node TSNode
 --- @param hl_group string
 local function highlight_node(node, hl_group)
-  local srow, scol, erow, ecol = node:range()
+  local srow, scol, erow, ecol = node:range(false)
   api.nvim_buf_set_extmark(0, ns, srow, scol, {
     end_row = erow,
     end_col = ecol,
@@ -96,8 +97,8 @@ function M.match()
   local container_node = w1node:parent()
 
   while container_node do
-    local w1srow, w1scol, w1erow, w1ecol = w1node:range()
-    local srow, scol, erow, ecol = container_node:range()
+    local w1srow, w1scol, w1erow, w1ecol = w1node:range(false)
+    local srow, scol, erow, ecol = container_node:range(false)
 
     --- @type integer?, integer?
     local prow, pcol
