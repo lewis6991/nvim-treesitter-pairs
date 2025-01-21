@@ -7,9 +7,9 @@ local ns = api.nvim_create_namespace('nvim-treesitter-pairs')
 --- @param col integer
 --- @return [TSNode, vim.treesitter.Query][]
 local function get_hl_ctx(bufnr, row, col)
-  local parser = vim.treesitter.get_parser(bufnr)
+  local pok, parser = pcall(vim.treesitter.get_parser, bufnr)
 
-  if not parser then
+  if not pok or not parser then
     return {}
   end
 
