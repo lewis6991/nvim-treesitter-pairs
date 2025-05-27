@@ -21,12 +21,12 @@ local function get_hl_ctx(bufnr, row, col)
       return
     end
 
-    --- @type boolean, vim.treesitter.Query
+    --- @type boolean, vim.treesitter.Query?
     local ok, query = pcall(function()
       return vim.treesitter.query.get(tree:lang(), 'highlights')
     end)
 
-    if ok then
+    if ok and query then
       ret[#ret+1] = { tstree:root(), query }
     end
   end)
